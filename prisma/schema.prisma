@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  password          String
+  firstName         String
+  lastName          String
+  role              Role      @default(AGENT)
+  avatarUrl         String?
+  isVerified        Boolean   @default(false)
+  verificationToken String?
+  verificationOtp   String?
+  otpExpiry         DateTime?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  refreshToken      String?
+  lastLogin         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  contacts      Contact[]
+  leads         Lead[]
+  activities    Activity[]
+  tasks         Task[]
+  assignedLeads Lead[]     @relation("AssignedLeads")
+  assignedTasks Task[]     @relation("AssignedTasks")
+}
+
+model Contact {
+  id        String        @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
+  company   String?
+  position  String?
+  source    String?
+  status    ContactStatus @default(ACTIVE)
+  notes     String?
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  leads     Lead[]
+  activities Activity[]
+  tasks     Task[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Lead {
+  id             String     @id @default(cuid())
+  title          String
+  description    String?
+  status         LeadStatus @default(NEW)
+  source         String?
+  score          Float?     @default(0)
+  probability    Float?     @default(0)
+  value          Float?
+  contactId      String
+  contact        Contact    @relation(fields: [contactId], references: [id])
+  assignedTo     String
+  assignedToUser User       @relation("AssignedLeads", fields: [assignedTo], references: [id])
+  userId         String
+  user           User       @relation(fields: [userId], references: [id])
+  notes          String?
+  activities     Activity[]
+  tasks          Task[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model Activity {
+  id          String       @id @default(cuid())
+  type        ActivityType
+  description String
+  date        DateTime     @default(now())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  contactId   String?
+  contact     Contact?     @relation(fields: [contactId], references: [id])
+  leadId      String?
+  lead        Lead?        @relation(fields: [leadId], references: [id])
+  createdAt   DateTime     @default(now())
+}
+
+model Task {
+  id             String     @id @default(cuid())
+  title          String
+  description    String?
+  priority       Priority   @default(MEDIUM)
+  status         TaskStatus @default(PENDING)
+  dueDate        DateTime?
+  assignedTo     String
+  assignedToUser User       @relation("AssignedTasks", fields: [assignedTo], references: [id])
+  userId         String
+  user           User       @relation(fields: [userId], references: [id])
+  contactId      String?
+  contact        Contact?   @relation(fields: [contactId], references: [id])
+  leadId         String?
+  lead           Lead?      @relation(fields: [leadId], references: [id])
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  AGENT
+}
+
+enum ContactStatus {
+  ACTIVE
+  INACTIVE
+  LEAD
+  CUSTOMER
+  CHURNED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  CONVERTED
+  LOST
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  MEETING
+  NOTE
+  TASK
+  SYSTEM
+}
+
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
